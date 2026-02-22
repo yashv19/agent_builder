@@ -3,6 +3,8 @@ import { convertToModelMessages, stepCountIs, streamText, type UIMessage } from 
 import { NextResponse } from "next/server";
 import { getAgentByIdFromDb } from "@/lib/db/agents";
 import { codeExecutionTool } from "@/tools/code-execution";
+import { tavilyExtractTool } from "@/tools/tavily-extract";
+import { tavilySearchTool } from "@/tools/tavily-search";
 
 type ChatRequestBody = {
   agentId?: string;
@@ -48,16 +50,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Agent not found." }, { status: 404 });
   }
 
-  const tools = agent.tools.includes("code_execution")
-    ? {
-        code_execution: codeExecutionTool,
-      }
-    : undefined;
+  const tools = {
+    ...(agent.tools.includes("code_execution") ? { code_execution: codeExecutionTool } : {}),
+    ...(agent.tools.includes("tavily_search") ? { tavily_search: tavilySearchTool } : {}),
+    ...(agent.tools.includes("tavily_extract") ? { tavily_extract: tavilyExtractTool } : {}),
+  };
 
   const result = streamText({
     model: anthropic(agent.model),
     system: agent.systemPrompt,
-    tools,
+    tools: Object.keys(tools).length > 0 ? tools : undefined,
     stopWhen: stepCountIs(5),
     messages: await convertToModelMessages(parsed.messages ?? []),
   });

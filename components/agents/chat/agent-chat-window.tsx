@@ -37,7 +37,13 @@ type ToolEvent = {
 
 type DisplayPart =
   | { kind: "text"; id: string; text: string }
-  | { kind: "tool"; id: string; event: ToolEvent };
+  | { kind: "tool"; id: string; event: ToolEvent; label: string };
+
+const TOOL_LABELS: Record<string, string> = {
+  "tool-code_execution": "Executing code",
+  "tool-tavily_search": "Tavily search",
+  "tool-tavily_extract": "Tavily extract",
+};
 
 function readMessageText(message: ChatMessageShape): string {
   if (typeof message.content === "string" && message.content.length > 0) {
@@ -73,10 +79,11 @@ function readDisplayParts(message: ChatMessageShape): DisplayPart[] {
       return;
     }
 
-    if (part?.type === "tool-code_execution") {
+    if (typeof part?.type === "string" && part.type in TOOL_LABELS) {
       displayParts.push({
         kind: "tool",
         id: part.toolCallId ?? `tool-${index}`,
+        label: TOOL_LABELS[part.type],
         event: {
           id: part.toolCallId ?? `tool-${index}`,
           state: typeof part.state === "string" ? part.state : "input-available",
@@ -175,7 +182,7 @@ export function AgentChatWindow({ agent }: AgentChatWindowProps) {
                       <details key={part.id} className="group rounded-md border bg-muted/40 p-2 text-left">
                         <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-medium [&::-webkit-details-marker]:hidden">
                           <ChevronRight className="size-4 transition-transform group-open:rotate-90" />
-                          Executing code
+                          {part.label}
                         </summary>
                         <div className="mt-2 space-y-2 text-xs text-muted-foreground">
                           <div>

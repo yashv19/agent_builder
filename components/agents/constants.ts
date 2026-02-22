@@ -9,4 +9,6 @@ export const DEFAULT_MODEL = ANTHROPIC_MODELS[0];
 
 export const SUPPORTED_TOOLS = [
   "code_execution",
+  "tavily_search",
+  "tavily_extract",
 ] as const;
