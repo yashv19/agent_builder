@@ -5,10 +5,7 @@ import {
   getSessionCookieName,
   getSessionMaxAgeSeconds,
 } from "@/lib/auth/session";
-
-type LoginBody = {
-  password?: string;
-};
+import { LoginRequestSchema } from "@/lib/schemas/auth";
 
 export async function POST(request: Request) {
   const sitePassword = process.env.SITE_PASSWORD;
@@ -18,10 +15,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Auth environment is not configured." }, { status: 500 });
   }
 
-  const body = (await request.json().catch(() => null)) as LoginBody | null;
-  const password = typeof body?.password === "string" ? body.password : "";
+  const body = await request.json().catch(() => null);
+  const parsed = LoginRequestSchema.safeParse(body);
 
-  if (password !== sitePassword) {
+  if (!parsed.success || parsed.data.password !== sitePassword) {
     return NextResponse.json({ error: "Invalid password." }, { status: 401 });
   }
 

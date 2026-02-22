@@ -9,7 +9,7 @@ function isStaticPath(pathname: string) {
   return pathname.startsWith("/_next") || pathname === "/favicon.ico" || /\.[a-zA-Z0-9]+$/.test(pathname);
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
   if (isStaticPath(pathname) || pathname.startsWith(AUTH_API_PREFIX)) {

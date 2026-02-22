@@ -1,3 +1,5 @@
+import { Buffer } from "node:buffer";
+
 const SESSION_COOKIE_NAME = "site_auth";
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
 
@@ -7,49 +9,36 @@ type SessionPayload = {
 };
 
 function toBase64Url(bytes: Uint8Array): string {
-  let binary = "";
-  for (const byte of bytes) {
-    binary += String.fromCharCode(byte);
-  }
-
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+  return Buffer.from(bytes).toString("base64url");
 }
 
 function fromBase64Url(value: string): Uint8Array {
-  const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
-  const padding = normalized.length % 4 === 0 ? "" : "=".repeat(4 - (normalized.length % 4));
-  const binary = atob(`${normalized}${padding}`);
-
-  const bytes = new Uint8Array(binary.length);
-  for (let index = 0; index < binary.length; index += 1) {
-    bytes[index] = binary.charCodeAt(index);
-  }
-
-  return bytes;
+  return new Uint8Array(Buffer.from(value, "base64url"));
 }
 
 function fromBase64(value: string): Uint8Array {
-  const binary = atob(value);
-  const bytes = new Uint8Array(binary.length);
+  return new Uint8Array(Buffer.from(value, "base64"));
+}
 
-  for (let index = 0; index < binary.length; index += 1) {
-    bytes[index] = binary.charCodeAt(index);
-  }
+function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+}
 
-  return bytes;
+function fromUtf8(value: string): Uint8Array {
+  return new TextEncoder().encode(value);
 }
 
 async function sign(input: string, secretBase64: string): Promise<string> {
+  const secretBytes = fromBase64(secretBase64);
   const key = await crypto.subtle.importKey(
     "raw",
-    fromBase64(secretBase64),
+    toArrayBuffer(secretBytes),
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign"],
   );
 
-  const data = new TextEncoder().encode(input);
-  const signature = await crypto.subtle.sign("HMAC", key, data);
+  const signature = await crypto.subtle.sign("HMAC", key, toArrayBuffer(fromUtf8(input)));
   return toBase64Url(new Uint8Array(signature));
 }
 
@@ -74,7 +63,7 @@ export async function createSignedSessionToken(secretBase64: string): Promise<st
   };
 
   const payloadJson = JSON.stringify(payload);
-  const payloadEncoded = toBase64Url(new TextEncoder().encode(payloadJson));
+  const payloadEncoded = toBase64Url(fromUtf8(payloadJson));
   const signature = await sign(payloadEncoded, secretBase64);
 
   return `${payloadEncoded}.${signature}`;

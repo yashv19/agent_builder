@@ -1,18 +1,22 @@
 import "server-only";
 
+import { z } from "zod";
+
 import type { Agent, AgentFormData } from "@/components/agents/types";
 import { getDbClient } from "@/lib/db/client";
 
-type AgentRow = {
-  id: string;
-  name: string;
-  description: string | null;
-  created_at: string;
-  model: string;
-  system_instructions: string;
-  tools: string | null;
-  updated_at: string;
-};
+const AgentRowSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string().nullable(),
+  created_at: z.string(),
+  model: z.string(),
+  system_instructions: z.string(),
+  tools: z.string().nullable(),
+  updated_at: z.string(),
+});
+
+type AgentRow = z.infer<typeof AgentRowSchema>;
 
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
@@ -52,6 +56,11 @@ function toAgent(row: AgentRow): Agent | null {
   };
 }
 
+function parseAgentRow(row: unknown): AgentRow | null {
+  const parsed = AgentRowSchema.safeParse(row);
+  return parsed.success ? parsed.data : null;
+}
+
 function normalizeFormData(data: AgentFormData): AgentFormData {
   return {
     name: data.name.trim(),
@@ -74,7 +83,9 @@ export async function listAgentsFromDb(): Promise<Agent[]> {
   });
 
   return result.rows
-    .map((row) => toAgent(row as unknown as AgentRow))
+    .map((row) => parseAgentRow(row))
+    .filter((row): row is AgentRow => row !== null)
+    .map((row) => toAgent(row))
     .filter((agent): agent is Agent => agent !== null);
 }
 
@@ -95,7 +106,7 @@ export async function getAgentByIdFromDb(agentId: string): Promise<Agent | null>
     args: [id],
   });
 
-  const row = result.rows[0] as AgentRow | undefined;
+  const row = parseAgentRow(result.rows[0]);
   return row ? toAgent(row) : null;
 }
 
