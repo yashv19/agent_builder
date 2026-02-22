@@ -7,10 +7,6 @@ export const ANTHROPIC_MODELS = [
 
 export const DEFAULT_MODEL = ANTHROPIC_MODELS[0];
 
-export const DUMMY_TOOLS = [
-  "web_search",
-  "knowledge_base",
-  "calculator",
-  "calendar",
-  "crm_lookup",
+export const SUPPORTED_TOOLS = [
+  "code_execution",
 ] as const;

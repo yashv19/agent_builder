@@ -1,6 +1,6 @@
 "use client";
 
-import { ANTHROPIC_MODELS, DUMMY_TOOLS } from "@/components/agents/constants";
+import { ANTHROPIC_MODELS, SUPPORTED_TOOLS } from "@/components/agents/constants";
 import type { AgentFormData } from "@/components/agents/types";
 import { Button } from "@/components/ui/button";
 import {
@@ -113,7 +113,7 @@ export function AgentFormDialog({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56">
-                {DUMMY_TOOLS.map((tool) => {
+                {SUPPORTED_TOOLS.map((tool) => {
                   const checked = formData.tools.includes(tool);
                   return (
                     <DropdownMenuCheckboxItem
