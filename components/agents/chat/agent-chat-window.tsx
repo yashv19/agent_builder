@@ -1,11 +1,11 @@
 "use client";
 
-import { useMemo } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport } from "ai";
 
 import type { Agent } from "@/components/agents/types";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
 type AgentChatWindowProps = {
@@ -35,78 +35,88 @@ function readMessageText(message: ChatMessageShape): string {
 }
 
 export function AgentChatWindow({ agent }: AgentChatWindowProps) {
-  const { messages, input, handleInputChange, handleSubmit, status } = useChat({
+  const { messages, sendMessage, status } = useChat({
     id: `agent-chat-${agent.id}`,
-    api: "/api/chat",
-    body: {
-      agentId: agent.id,
-      model: agent.model,
-    },
+    transport: new DefaultChatTransport({
+      api: "/api/chat",
+    }),
   });
-
-  const isInputDisabled = true;
+  const [input, setInput] = useState("");
 
   const renderedMessages = useMemo(
     () =>
       messages.map((message) => {
         const text = readMessageText(message as ChatMessageShape);
-        const role = message.role === "assistant" ? "Assistant" : "You";
+        const role = message.role === "user" ? "user" : "assistant";
+        const isUser = role === "user";
 
         return {
           id: message.id,
           role,
+          isUser,
           text: text || "...",
         };
       }),
     [messages],
   );
 
+  const handleFormSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const nextMessage = input.trim();
+    if (!nextMessage || status === "streaming") {
+      return;
+    }
+
+    sendMessage(
+      { text: nextMessage },
+      {
+        body: {
+          model: agent.model,
+          systemPrompt: agent.systemPrompt,
+        },
+      },
+    );
+    setInput("");
+  };
+
   return (
-    <Card>
-      <CardHeader className="gap-3">
-        <div className="flex items-center justify-between gap-3">
-          <CardTitle>Chat</CardTitle>
-          <span className="rounded-md border px-2 py-1 text-xs text-muted-foreground">{agent.model}</span>
-        </div>
-        <CardDescription>UI is wired with `useChat`. Message streaming will be connected next.</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="min-h-[360px] space-y-3 rounded-md border p-4">
-          {renderedMessages.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No messages yet.</p>
-          ) : (
-            renderedMessages.map((message) => (
-              <article key={message.id} className="space-y-1 rounded-md border p-3">
+    <section className="flex min-h-0 flex-1 flex-col">
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
+        {renderedMessages.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No messages yet.</p>
+        ) : (
+          renderedMessages.map((message) => (
+            <article key={message.id} className={`flex ${message.isUser ? "justify-end" : "justify-start"}`}>
+              <div className={`max-w-[80%] space-y-1 ${message.isUser ? "items-end text-right" : "items-start text-left"}`}>
                 <p className="text-xs font-medium text-muted-foreground">{message.role}</p>
-                <p className="whitespace-pre-wrap text-sm">{message.text}</p>
-              </article>
-            ))
-          )}
-        </div>
+                <p
+                  className={`whitespace-pre-wrap rounded-md border px-3 py-2 text-sm ${
+                    message.isUser ? "bg-primary text-primary-foreground" : "bg-muted"
+                  }`}
+                >
+                  {message.text}
+                </p>
+              </div>
+            </article>
+          ))
+        )}
+      </div>
 
-        <form
-          className="flex gap-2"
-          onSubmit={(event) => {
-            if (isInputDisabled) {
-              event.preventDefault();
-              return;
-            }
-
-            handleSubmit(event);
-          }}
-        >
+      <div className="sticky bottom-0 border-t bg-background py-4">
+        <form className="flex gap-2" onSubmit={handleFormSubmit}>
           <Input
             name="prompt"
             placeholder="Ask your agent something..."
             value={input}
-            onChange={handleInputChange}
-            disabled={isInputDisabled}
+            onChange={(event) => setInput(event.target.value)}
+            disabled={status === "streaming"}
           />
-          <Button type="submit" disabled={isInputDisabled || status === "streaming"}>
+          <Button type="submit" disabled={status === "streaming" || input.trim().length === 0}>
             Send
           </Button>
         </form>
-      </CardContent>
-    </Card>
+      </div>
+    </section>
   );
 }

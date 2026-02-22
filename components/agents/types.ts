@@ -4,7 +4,9 @@ export type Agent = {
   description: string;
   systemPrompt: string;
   model: string;
+  tools: string[];
   createdAt: string;
+  updatedAt: string;
 };
 
 export type AgentFormData = {
@@ -12,4 +14,5 @@ export type AgentFormData = {
   description: string;
   systemPrompt: string;
   model: string;
+  tools: string[];
 };

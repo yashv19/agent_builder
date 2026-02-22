@@ -1,8 +1,14 @@
 "use client";
 
-import { DEFAULT_MODEL } from "@/components/agents/constants";
+import { ANTHROPIC_MODELS, DUMMY_TOOLS } from "@/components/agents/constants";
 import type { AgentFormData } from "@/components/agents/types";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -13,6 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
 type AgentFormDialogProps = {
@@ -32,8 +39,6 @@ export function AgentFormDialog({
   onFormChange,
   onSubmit,
 }: AgentFormDialogProps) {
-  const isValid = formData.name.trim().length > 0 && formData.systemPrompt.trim().length > 0;
-
   const submitLabel = mode === "create" ? "Create agent" : "Save changes";
   const title = mode === "create" ? "Create Agent" : "Edit Agent";
   const description =
@@ -52,7 +57,7 @@ export function AgentFormDialog({
           className="grid gap-4"
           onSubmit={(event) => {
             event.preventDefault();
-            if (!isValid) {
+            if (formData.name.trim().length === 0 || formData.systemPrompt.trim().length === 0) {
               return;
             }
             onSubmit();
@@ -80,13 +85,53 @@ export function AgentFormDialog({
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="agent-model">Model</Label>
-            <Input
-              id="agent-model"
+            <Label>Model</Label>
+            <Select
               value={formData.model}
-              onChange={(event) => onFormChange({ ...formData, model: event.target.value })}
-              placeholder={DEFAULT_MODEL}
-            />
+              onValueChange={(value) => {
+                onFormChange({ ...formData, model: value });
+              }}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select a model" />
+              </SelectTrigger>
+              <SelectContent>
+                {ANTHROPIC_MODELS.map((model) => (
+                  <SelectItem key={model} value={model}>
+                    {model}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-2">
+            <Label>Tools</Label>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button type="button" variant="outline" className="justify-between">
+                  {formData.tools.length > 0 ? `${formData.tools.length} selected` : "Select tools"}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56">
+                {DUMMY_TOOLS.map((tool) => {
+                  const checked = formData.tools.includes(tool);
+                  return (
+                    <DropdownMenuCheckboxItem
+                      key={tool}
+                      checked={checked}
+                      onCheckedChange={(nextChecked) => {
+                        const nextTools = nextChecked
+                          ? [...formData.tools, tool]
+                          : formData.tools.filter((value) => value !== tool);
+                        onFormChange({ ...formData, tools: Array.from(new Set(nextTools)) });
+                      }}
+                    >
+                      {tool}
+                    </DropdownMenuCheckboxItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
           <div className="grid gap-2">
             <Label htmlFor="agent-system-prompt">System prompt</Label>
@@ -102,7 +147,7 @@ export function AgentFormDialog({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={!isValid}>
+            <Button type="submit">
               {submitLabel}
             </Button>
           </DialogFooter>

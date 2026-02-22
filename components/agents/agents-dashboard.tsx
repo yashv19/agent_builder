@@ -1,10 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { MoreHorizontal, Plus } from "lucide-react";
 
-import { DEFAULT_MODEL, INITIAL_AGENTS } from "@/components/agents/constants";
+import { DEFAULT_MODEL } from "@/components/agents/constants";
 import { AgentFormDialog } from "@/components/agents/agent-form-dialog";
 import type { Agent, AgentFormData } from "@/components/agents/types";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,15 @@ const EMPTY_FORM: AgentFormData = {
   description: "",
   systemPrompt: "",
   model: DEFAULT_MODEL,
+  tools: [],
+};
+
+type AgentsDashboardProps = {
+  initialAgents: Agent[];
+};
+
+type AgentResponse = {
+  agent: Agent;
 };
 
 function formatDate(isoDate: string) {
@@ -32,18 +41,13 @@ function formatDate(isoDate: string) {
   }).format(new Date(isoDate));
 }
 
-export function AgentsDashboard() {
+export function AgentsDashboard({ initialAgents }: AgentsDashboardProps) {
   const router = useRouter();
-  const [agents, setAgents] = useState<Agent[]>(INITIAL_AGENTS);
+  const [agents, setAgents] = useState<Agent[]>(initialAgents);
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState<AgentFormData>(EMPTY_FORM);
-
-  const selectedAgent = useMemo(
-    () => agents.find((agent) => agent.id === selectedAgentId) ?? null,
-    [agents, selectedAgentId],
-  );
 
   const openCreateDialog = () => {
     setFormMode("create");
@@ -65,11 +69,20 @@ export function AgentsDashboard() {
       description: targetAgent.description,
       systemPrompt: targetAgent.systemPrompt,
       model: targetAgent.model,
+      tools: targetAgent.tools,
     });
     setIsDialogOpen(true);
   };
 
-  const deleteAgent = (agentId: string) => {
+  const deleteAgent = async (agentId: string) => {
+    const response = await fetch(`/api/agents/${encodeURIComponent(agentId)}`, {
+      method: "DELETE",
+    });
+
+    if (!response.ok) {
+      return;
+    }
+
     setAgents((prev) => prev.filter((agent) => agent.id !== agentId));
     if (selectedAgentId === agentId) {
       setSelectedAgentId(null);
@@ -85,42 +98,51 @@ export function AgentsDashboard() {
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const normalized: AgentFormData = {
       name: formData.name.trim(),
       description: formData.description.trim(),
       systemPrompt: formData.systemPrompt.trim(),
       model: formData.model.trim() || DEFAULT_MODEL,
+      tools: formData.tools,
     };
 
-    if (formMode === "create") {
-      const nextId = `agent-${crypto.randomUUID()}`;
-      const createdAgent: Agent = {
-        id: nextId,
-        name: normalized.name,
-        description: normalized.description,
-        systemPrompt: normalized.systemPrompt,
-        model: normalized.model,
-        createdAt: new Date().toISOString(),
-      };
-
-      setAgents((prev) => [createdAgent, ...prev]);
+    if (!normalized.name || !normalized.systemPrompt) {
+      return;
     }
 
-    if (formMode === "edit" && selectedAgent) {
-      setAgents((prev) =>
-        prev.map((agent) =>
-          agent.id === selectedAgent.id
-            ? {
-                ...agent,
-                name: normalized.name,
-                description: normalized.description,
-                systemPrompt: normalized.systemPrompt,
-                model: normalized.model,
-              }
-            : agent,
-        ),
-      );
+    if (formMode === "create") {
+      const response = await fetch("/api/agents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(normalized),
+      });
+
+      if (!response.ok) {
+        return;
+      }
+
+      const payload = (await response.json()) as AgentResponse;
+      if (payload.agent) {
+        setAgents((prev) => [payload.agent, ...prev]);
+      }
+    }
+
+    if (formMode === "edit" && selectedAgentId) {
+      const response = await fetch(`/api/agents/${encodeURIComponent(selectedAgentId)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(normalized),
+      });
+
+      if (!response.ok) {
+        return;
+      }
+
+      const payload = (await response.json()) as AgentResponse;
+      if (payload.agent) {
+        setAgents((prev) => prev.map((agent) => (agent.id === payload.agent.id ? payload.agent : agent)));
+      }
     }
 
     closeDialog(false);
@@ -159,7 +181,7 @@ export function AgentsDashboard() {
               {agents.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                    No agents yet. Create your first one.
+                    No agents in the database yet 🤖
                   </TableCell>
                 </TableRow>
               ) : (
@@ -190,7 +212,7 @@ export function AgentsDashboard() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" onClick={(event) => event.stopPropagation()}>
                           <DropdownMenuItem onClick={() => openEditDialog(agent.id)}>Edit</DropdownMenuItem>
-                          <DropdownMenuItem className="text-red-600" onClick={() => deleteAgent(agent.id)}>
+                          <DropdownMenuItem variant="destructive" onClick={() => void deleteAgent(agent.id)}>
                             Delete
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -210,7 +232,7 @@ export function AgentsDashboard() {
         formData={formData}
         onOpenChange={closeDialog}
         onFormChange={setFormData}
-        onSubmit={handleSubmit}
+        onSubmit={() => void handleSubmit()}
       />
     </main>
   );

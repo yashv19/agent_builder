@@ -1,22 +1,16 @@
-import type { Agent } from "@/components/agents/types";
+export const ANTHROPIC_MODELS = [
+  "claude-haiku-4-5",
+  "claude-sonnet-4-5",
+  "claude-sonnet-4-6",
+  "claude-opus-4-6",
+] as const;
 
-export const DEFAULT_MODEL = "gpt-4.1-mini";
+export const DEFAULT_MODEL = ANTHROPIC_MODELS[0];
 
-export const INITIAL_AGENTS: Agent[] = [
-  {
-    id: "agent-001",
-    name: "Support Concierge",
-    description: "Answers product setup and troubleshooting questions.",
-    systemPrompt: "You are a helpful support assistant. Prioritize actionable troubleshooting steps.",
-    model: "gpt-4.1-mini",
-    createdAt: "2026-02-20T17:00:00.000Z",
-  },
-  {
-    id: "agent-002",
-    name: "Sales Coach",
-    description: "Drafts personalized outbound sequences for prospects.",
-    systemPrompt: "You are a sales enablement assistant. Keep responses concise and persuasive.",
-    model: "gpt-4.1",
-    createdAt: "2026-02-21T13:15:00.000Z",
-  },
-];
+export const DUMMY_TOOLS = [
+  "web_search",
+  "knowledge_base",
+  "calculator",
+  "calendar",
+  "crm_lookup",
+] as const;
