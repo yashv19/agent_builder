@@ -38,6 +38,7 @@ function formatDate(isoDate: string) {
     month: "short",
     day: "numeric",
     year: "numeric",
+    timeZone: "UTC",
   }).format(new Date(isoDate));
 }
 

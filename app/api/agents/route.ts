@@ -5,7 +5,14 @@ import { AgentFormSchema } from "@/lib/schemas/agent";
 
 export async function GET() {
   const agents = await listAgentsFromDb();
-  return NextResponse.json({ agents });
+  return NextResponse.json(
+    { agents },
+    {
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+      },
+    },
+  );
 }
 
 export async function POST(request: Request) {
