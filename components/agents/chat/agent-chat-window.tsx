@@ -99,11 +99,27 @@ function readDisplayParts(message: ChatMessageShape): DisplayPart[] {
 }
 
 export function AgentChatWindow({ agent }: AgentChatWindowProps) {
+  const conversationId = `agent-chat-${agent.id}`;
+  const [parentSpanId, setParentSpanId] = useState<string | null>(null);
+  const transport = useMemo(
+    () =>
+      new DefaultChatTransport({
+        api: "/api/chat",
+        fetch: async (input, init) => {
+          const response = await fetch(input, init);
+          const nextParentSpanId = response.headers.get("x-parent-span-id");
+          if (nextParentSpanId) {
+            setParentSpanId(nextParentSpanId);
+          }
+          return response;
+        },
+      }),
+    [],
+  );
+
   const { messages, sendMessage, status } = useChat({
-    id: `agent-chat-${agent.id}`,
-    transport: new DefaultChatTransport({
-      api: "/api/chat",
-    }),
+    id: conversationId,
+    transport,
   });
   const [input, setInput] = useState("");
 
@@ -137,6 +153,8 @@ export function AgentChatWindow({ agent }: AgentChatWindowProps) {
       {
         body: {
           agentId: agent.id,
+          conversationId,
+          parentSpanId: parentSpanId ?? undefined,
         },
       },
     );
