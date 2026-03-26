@@ -4,6 +4,8 @@ import { Script, createContext } from "node:vm";
 import { tool } from "ai";
 import { z } from "zod";
 
+import { TOOL_METADATA } from "@/lib/tools/tool-metadata";
+
 const MAX_CODE_LENGTH = 10_000;
 const MAX_OUTPUT_LENGTH = 8_000;
 const EXECUTION_TIMEOUT_MS = 300;
@@ -17,8 +19,7 @@ function trimOutput(value: string): string {
 }
 
 export const codeExecutionTool = tool({
-  description:
-    "Execute basic vanilla JavaScript in a constrained vm context and return logs plus the final expression result.",
+  description: TOOL_METADATA.code_execution.description,
   inputSchema: z.object({
     code: z
       .string()

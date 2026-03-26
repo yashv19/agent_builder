@@ -2,6 +2,7 @@
 
 import { ANTHROPIC_MODELS, SUPPORTED_TOOLS } from "@/components/agents/constants";
 import type { AgentFormData } from "@/components/agents/types";
+import { TOOL_METADATA } from "@/lib/tools/tool-metadata";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -115,6 +116,7 @@ export function AgentFormDialog({
               <DropdownMenuContent className="w-56">
                 {SUPPORTED_TOOLS.map((tool) => {
                   const checked = formData.tools.includes(tool);
+                  const metadata = TOOL_METADATA[tool];
                   return (
                     <DropdownMenuCheckboxItem
                       key={tool}
@@ -126,7 +128,10 @@ export function AgentFormDialog({
                         onFormChange({ ...formData, tools: Array.from(new Set(nextTools)) });
                       }}
                     >
-                      {tool}
+                      <div className="flex flex-col">
+                        <span>{metadata.name}</span>
+                        <span className="text-xs text-muted-foreground">{metadata.description}</span>
+                      </div>
                     </DropdownMenuCheckboxItem>
                   );
                 })}

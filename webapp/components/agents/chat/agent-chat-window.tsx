@@ -6,6 +6,7 @@ import { DefaultChatTransport } from "ai";
 import { ChevronRight } from "lucide-react";
 
 import type { Agent } from "@/components/agents/types";
+import { TOOL_EVENT_LABELS } from "@/lib/tools/tool-metadata";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -38,12 +39,6 @@ type ToolEvent = {
 type DisplayPart =
   | { kind: "text"; id: string; text: string }
   | { kind: "tool"; id: string; event: ToolEvent; label: string };
-
-const TOOL_LABELS: Record<string, string> = {
-  "tool-code_execution": "Executing code",
-  "tool-tavily_search": "Tavily search",
-  "tool-tavily_extract": "Tavily extract",
-};
 
 function readMessageText(message: ChatMessageShape): string {
   if (typeof message.content === "string" && message.content.length > 0) {
@@ -79,11 +74,12 @@ function readDisplayParts(message: ChatMessageShape): DisplayPart[] {
       return;
     }
 
-    if (typeof part?.type === "string" && part.type in TOOL_LABELS) {
+    if (typeof part?.type === "string" && part.type in TOOL_EVENT_LABELS) {
+      const label = TOOL_EVENT_LABELS[part.type as keyof typeof TOOL_EVENT_LABELS];
       displayParts.push({
         kind: "tool",
         id: part.toolCallId ?? `tool-${index}`,
-        label: TOOL_LABELS[part.type],
+        label,
         event: {
           id: part.toolCallId ?? `tool-${index}`,
           state: typeof part.state === "string" ? part.state : "input-available",
