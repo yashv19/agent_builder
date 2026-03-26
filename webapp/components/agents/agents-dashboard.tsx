@@ -21,6 +21,7 @@ const EMPTY_FORM: AgentFormData = {
   name: "",
   description: "",
   systemPrompt: "",
+  braintrustProjectName: "",
   model: DEFAULT_MODEL,
   tools: [],
 };
@@ -69,6 +70,7 @@ export function AgentsDashboard({ initialAgents }: AgentsDashboardProps) {
       name: targetAgent.name,
       description: targetAgent.description,
       systemPrompt: targetAgent.systemPrompt,
+      braintrustProjectName: targetAgent.braintrustProjectName,
       model: targetAgent.model,
       tools: targetAgent.tools,
     });
@@ -104,11 +106,12 @@ export function AgentsDashboard({ initialAgents }: AgentsDashboardProps) {
       name: formData.name.trim(),
       description: formData.description.trim(),
       systemPrompt: formData.systemPrompt.trim(),
+      braintrustProjectName: formData.braintrustProjectName.trim(),
       model: formData.model.trim() || DEFAULT_MODEL,
       tools: formData.tools,
     };
 
-    if (!normalized.name || !normalized.systemPrompt) {
+    if (!normalized.name || !normalized.systemPrompt || !normalized.braintrustProjectName) {
       return;
     }
 

@@ -1,6 +1,6 @@
 import { anthropic } from "@ai-sdk/anthropic";
 import { stepCountIs } from "ai";
-import { traced, updateSpan } from "braintrust";
+import { updateSpan } from "braintrust";
 import { NextResponse } from "next/server";
 
 import { getAgentByIdFromDb } from "@/lib/db/agents";
@@ -74,7 +74,7 @@ export async function POST(request: Request) {
     ...(agent.tools.includes("tavily_extract") ? { tavily_extract: tavilyExtractTool } : {}),
   };
 
-  const logger = getBraintrustLogger();
+  const logger = getBraintrustLogger(agent.braintrustProjectName);
   const turnNumber = getTurnNumber(parsed.data.messages);
   const turnInput = getLastUserMessageInput(parsed.data.messages);
 
@@ -94,15 +94,15 @@ export async function POST(request: Request) {
 
   const tracedAiSdk = getTracedAiSdk();
 
-  return traced(
-    async (turnSpan) => {
-      const result = tracedAiSdk.streamText({
-        model: anthropic(agent.model),
-        system: agent.systemPrompt,
-        tools: Object.keys(tools).length > 0 ? tools : undefined,
-        stopWhen: stepCountIs(5),
-        messages: await tracedAiSdk.convertToModelMessages(parsed.data.messages),
-        onFinish: ({ text, totalUsage }) => {
+  const runTurn = async (turnSpan?: ReturnType<NonNullable<typeof logger>["startSpan"]>) => {
+    const result = tracedAiSdk.streamText({
+      model: anthropic(agent.model),
+      system: agent.systemPrompt,
+      tools: Object.keys(tools).length > 0 ? tools : undefined,
+      stopWhen: stepCountIs(5),
+      messages: await tracedAiSdk.convertToModelMessages(parsed.data.messages),
+      onFinish: ({ text, totalUsage }) => {
+        if (turnSpan) {
           turnSpan.log({
             input: turnInput,
             output: text,
@@ -110,50 +110,55 @@ export async function POST(request: Request) {
               total_tokens: (totalUsage.inputTokens ?? 0) + (totalUsage.outputTokens ?? 0),
               turn_number: turnNumber,
               conversation_id: parsed.data.conversationId,
-              agent_id: parsed.data.agentId
+              agent_id: parsed.data.agentId,
             },
           });
+        }
 
-          if (conversationSpan) {
-            conversationSpan.log({
-              input: parsed.data.messages,
-              output: text,
-              metadata: {
-                total_tokens: (totalUsage.inputTokens ?? 0) + (totalUsage.outputTokens ?? 0),
-                turn_number: turnNumber,
-                conversation_id: parsed.data.conversationId,
-              },
-            });
-            conversationSpan.end();
-            return;
+        if (conversationSpan) {
+          conversationSpan.log({
+            input: parsed.data.messages,
+            output: text,
+            metadata: {
+              total_tokens: (totalUsage.inputTokens ?? 0) + (totalUsage.outputTokens ?? 0),
+              turn_number: turnNumber,
+              conversation_id: parsed.data.conversationId,
+            },
+          });
+          conversationSpan.end();
+          return;
+        }
+
+        if (conversationSpanId) {
+          updateSpan({
+            exported: conversationSpanId,
+            input: parsed.data.messages,
+            output: text,
+            metadata: {
+              total_tokens: (totalUsage.inputTokens ?? 0) + (totalUsage.outputTokens ?? 0),
+              turn_number: turnNumber,
+              conversation_id: parsed.data.conversationId,
+            },
+          });
+        }
+      },
+    });
+
+    return result.toUIMessageStreamResponse({
+      headers: conversationSpanId
+        ? {
+            "x-parent-span-id": conversationSpanId,
           }
+        : undefined,
+    });
+  };
 
-          if (conversationSpanId) {
-            updateSpan({
-              exported: conversationSpanId,
-              input: parsed.data.messages,
-              output: text,
-              metadata: {
-                total_tokens: (totalUsage.inputTokens ?? 0) + (totalUsage.outputTokens ?? 0),
-                turn_number: turnNumber,
-                conversation_id: parsed.data.conversationId,
-              },
-            });
-          }
-        },
-      });
+  if (!logger) {
+    return runTurn();
+  }
 
-      return result.toUIMessageStreamResponse({
-        headers: conversationSpanId
-          ? {
-              "x-parent-span-id": conversationSpanId,
-            }
-          : undefined,
-      });
-    },
-    {
-      name: `chat_turn_${turnNumber}`,
-      parent: conversationSpanId,
-    },
-  );
+  return logger.traced((turnSpan) => runTurn(turnSpan), {
+    name: `chat_turn_${turnNumber}`,
+    parent: conversationSpanId ?? undefined,
+  });
 }

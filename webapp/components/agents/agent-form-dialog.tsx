@@ -86,6 +86,20 @@ export function AgentFormDialog({
             />
           </div>
           <div className="grid gap-2">
+            <Label htmlFor="agent-braintrust-project">Braintrust project</Label>
+            <Input
+              id="agent-braintrust-project"
+              value={formData.braintrustProjectName}
+              maxLength={120}
+              onChange={(event) => onFormChange({ ...formData, braintrustProjectName: event.target.value })}
+              placeholder="agent-builder-customer-support"
+              required
+            />
+            <p className="text-xs text-muted-foreground">
+              Changing this later sends new traces to a different Braintrust project.
+            </p>
+          </div>
+          <div className="grid gap-2">
             <Label>Model</Label>
             <Select
               value={formData.model}

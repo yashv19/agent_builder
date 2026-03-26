@@ -4,39 +4,50 @@ import * as ai from "ai";
 import { initLogger, wrapAISDK } from "braintrust";
 
 const globalForBraintrust = globalThis as unknown as {
-  braintrustInitialized?: boolean;
+  braintrustLoggers?: Map<string, ReturnType<typeof initLogger>>;
   tracedAiSdk?: typeof ai;
-  braintrustLogger?: ReturnType<typeof initLogger>;
 };
 
-function getTracingConfig() {
-  const apiKey = process.env.BRAINTRUST_API_KEY;
-  const projectName = process.env.BRAINTRUST_PROJECT_NAME;
-
-  if (!apiKey || !projectName) {
-    return null;
-  }
-
-  return { apiKey, projectName };
+function getBraintrustApiKey() {
+  const apiKey = process.env.BRAINTRUST_API_KEY?.trim();
+  return apiKey && apiKey.length > 0 ? apiKey : null;
 }
 
-export function getBraintrustLogger() {
-  if (globalForBraintrust.braintrustLogger) {
-    return globalForBraintrust.braintrustLogger;
+function resolveBraintrustProjectName(projectName: string | null | undefined) {
+  const fromAgent = projectName?.trim();
+  if (fromAgent) {
+    return fromAgent;
   }
 
-  const config = getTracingConfig();
-  if (!config) {
+  const fromEnv = process.env.BRAINTRUST_PROJECT_NAME?.trim();
+  return fromEnv && fromEnv.length > 0 ? fromEnv : null;
+}
+
+export function getBraintrustLogger(projectName?: string | null) {
+  const apiKey = getBraintrustApiKey();
+  const resolvedProjectName = resolveBraintrustProjectName(projectName);
+
+  if (!apiKey || !resolvedProjectName) {
     return null;
   }
 
-  globalForBraintrust.braintrustLogger = initLogger({
-    apiKey: config.apiKey,
-    projectName: config.projectName,
-  });
-  globalForBraintrust.braintrustInitialized = true;
+  if (!globalForBraintrust.braintrustLoggers) {
+    globalForBraintrust.braintrustLoggers = new Map();
+  }
 
-  return globalForBraintrust.braintrustLogger;
+  const cachedLogger = globalForBraintrust.braintrustLoggers.get(resolvedProjectName);
+  if (cachedLogger) {
+    return cachedLogger;
+  }
+
+  const logger = initLogger({
+    apiKey,
+    projectName: resolvedProjectName,
+    setCurrent: false,
+  });
+
+  globalForBraintrust.braintrustLoggers.set(resolvedProjectName, logger);
+  return logger;
 }
 
 export function getTracedAiSdk() {
@@ -44,12 +55,7 @@ export function getTracedAiSdk() {
     return globalForBraintrust.tracedAiSdk;
   }
 
-  const config = getTracingConfig();
-
-  if (config && !globalForBraintrust.braintrustInitialized) {
-    getBraintrustLogger();
-  }
-
-  globalForBraintrust.tracedAiSdk = config ? wrapAISDK(ai) : ai;
+  const apiKey = getBraintrustApiKey();
+  globalForBraintrust.tracedAiSdk = apiKey ? wrapAISDK(ai) : ai;
   return globalForBraintrust.tracedAiSdk;
 }

@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS agents (
   created_at TEXT NOT NULL,
   model TEXT NOT NULL,
   system_instructions TEXT NOT NULL,
+  braintrust_project_name TEXT,
   tools TEXT NOT NULL DEFAULT '[]',
   updated_at TEXT NOT NULL,
   CHECK (json_valid(tools))

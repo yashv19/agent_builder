@@ -21,6 +21,9 @@ export function AgentChatPageHeader({ agent }: AgentChatPageHeaderProps) {
         </Button>
       </div>
       <p className="text-sm text-muted-foreground">{agent.description || "No description provided."}</p>
+      <p className="text-sm text-muted-foreground">
+        Braintrust project: {agent.braintrustProjectName || "Not configured"}
+      </p>
       <div className="flex w-full items-start justify-between gap-4">
         <div className="flex flex-wrap items-center gap-2">
           <p className="text-sm text-muted-foreground">Available tools:</p>

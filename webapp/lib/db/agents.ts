@@ -12,6 +12,7 @@ const AgentRowSchema = z.object({
   created_at: z.string(),
   model: z.string(),
   system_instructions: z.string(),
+  braintrust_project_name: z.string().nullable(),
   tools: z.string().nullable(),
   updated_at: z.string(),
 });
@@ -49,6 +50,7 @@ function toAgent(row: AgentRow): Agent | null {
     name: row.name,
     description: row.description ?? "",
     systemPrompt: row.system_instructions ?? "",
+    braintrustProjectName: row.braintrust_project_name ?? "",
     model: row.model,
     tools: parseTools(row.tools),
     createdAt: row.created_at,
@@ -66,6 +68,7 @@ function normalizeFormData(data: AgentFormData): AgentFormData {
     name: data.name.trim(),
     description: data.description.trim(),
     systemPrompt: data.systemPrompt.trim(),
+    braintrustProjectName: data.braintrustProjectName.trim(),
     model: data.model.trim(),
     tools: Array.from(new Set(data.tools.filter((tool) => tool.trim().length > 0))),
   };
@@ -76,7 +79,7 @@ export async function listAgentsFromDb(): Promise<Agent[]> {
 
   const result = await db.execute({
     sql: `
-      SELECT id, name, description, created_at, model, system_instructions, tools, updated_at
+      SELECT id, name, description, created_at, model, system_instructions, braintrust_project_name, tools, updated_at
       FROM agents
       ORDER BY datetime(updated_at) DESC, datetime(created_at) DESC;
     `,
@@ -98,7 +101,7 @@ export async function getAgentByIdFromDb(agentId: string): Promise<Agent | null>
   const db = getDbClient();
   const result = await db.execute({
     sql: `
-      SELECT id, name, description, created_at, model, system_instructions, tools, updated_at
+      SELECT id, name, description, created_at, model, system_instructions, braintrust_project_name, tools, updated_at
       FROM agents
       WHERE id = ?
       LIMIT 1;
@@ -118,8 +121,8 @@ export async function createAgentInDb(formData: AgentFormData): Promise<Agent> {
   const db = getDbClient();
   await db.execute({
     sql: `
-      INSERT INTO agents (id, name, description, created_at, model, system_instructions, tools, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+      INSERT INTO agents (id, name, description, created_at, model, system_instructions, braintrust_project_name, tools, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
     `,
     args: [
       id,
@@ -128,6 +131,7 @@ export async function createAgentInDb(formData: AgentFormData): Promise<Agent> {
       now,
       normalized.model,
       normalized.systemPrompt,
+      normalized.braintrustProjectName,
       JSON.stringify(normalized.tools),
       now,
     ],
@@ -154,7 +158,7 @@ export async function updateAgentInDb(agentId: string, formData: AgentFormData):
   await db.execute({
     sql: `
       UPDATE agents
-      SET name = ?, description = ?, model = ?, system_instructions = ?, tools = ?, updated_at = ?
+      SET name = ?, description = ?, model = ?, system_instructions = ?, braintrust_project_name = ?, tools = ?, updated_at = ?
       WHERE id = ?;
     `,
     args: [
@@ -162,6 +166,7 @@ export async function updateAgentInDb(agentId: string, formData: AgentFormData):
       normalized.description,
       normalized.model,
       normalized.systemPrompt,
+      normalized.braintrustProjectName,
       JSON.stringify(normalized.tools),
       now,
       id,
