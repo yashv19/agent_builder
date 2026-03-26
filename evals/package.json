@@ -1,0 +1,20 @@
+{
+  "name": "enablement-demo-evals",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "eval:travel-support": "npx braintrust eval travel_support_remote_eval.ts",
+    "eval:travel-support:dev": "npx braintrust eval travel_support_remote_eval.ts --dev"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.55.0",
+    "autoevals": "^0.0.124",
+    "braintrust": "^3.1.0",
+    "dotenv": "^17.3.1",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "typescript": "^5"
+  }
+}
