@@ -1,5 +1,4 @@
-import { AgentChatPageHeader } from "@/components/agents/chat/agent-chat-page-header";
-import { AgentChatWindow } from "@/components/agents/chat/agent-chat-window";
+import { AgentChatShell } from "@/components/agents/chat/agent-chat-shell";
 import { getAgentByIdFromDb } from "@/lib/db/agents";
 
 type AgentPageProps = {
@@ -27,10 +26,5 @@ export default async function AgentPage({ params }: AgentPageProps) {
     );
   }
 
-  return (
-    <main className="mx-auto flex h-screen w-full max-w-4xl min-h-0 flex-col gap-6 overflow-hidden p-6 md:p-10">
-      <AgentChatPageHeader agent={agent} />
-      <AgentChatWindow agent={agent} />
-    </main>
-  );
+  return <AgentChatShell agent={agent} />;
 }
