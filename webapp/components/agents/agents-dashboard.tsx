@@ -10,6 +10,14 @@ import type { Agent, AgentFormData } from "@/components/agents/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -50,6 +58,7 @@ export function AgentsDashboard({ initialAgents }: AgentsDashboardProps) {
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState<AgentFormData>(EMPTY_FORM);
+  const [pendingDeleteAgent, setPendingDeleteAgent] = useState<Agent | null>(null);
 
   const openCreateDialog = () => {
     setFormMode("create");
@@ -99,6 +108,21 @@ export function AgentsDashboard({ initialAgents }: AgentsDashboardProps) {
       setSelectedAgentId(null);
       setFormMode("create");
     }
+  };
+
+  const closeDeleteDialog = (nextOpen: boolean) => {
+    if (!nextOpen) {
+      setPendingDeleteAgent(null);
+    }
+  };
+
+  const confirmDeleteAgent = async () => {
+    if (!pendingDeleteAgent) {
+      return;
+    }
+
+    await deleteAgent(pendingDeleteAgent.id);
+    setPendingDeleteAgent(null);
   };
 
   const handleSubmit = async () => {
@@ -216,7 +240,12 @@ export function AgentsDashboard({ initialAgents }: AgentsDashboardProps) {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" onClick={(event) => event.stopPropagation()}>
                           <DropdownMenuItem onClick={() => openEditDialog(agent.id)}>Edit</DropdownMenuItem>
-                          <DropdownMenuItem variant="destructive" onClick={() => void deleteAgent(agent.id)}>
+                          <DropdownMenuItem
+                            variant="destructive"
+                            onClick={() => {
+                              setPendingDeleteAgent(agent);
+                            }}
+                          >
                             Delete
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -238,6 +267,25 @@ export function AgentsDashboard({ initialAgents }: AgentsDashboardProps) {
         onFormChange={setFormData}
         onSubmit={() => void handleSubmit()}
       />
+
+      <Dialog open={pendingDeleteAgent !== null} onOpenChange={closeDeleteDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete agent?</DialogTitle>
+            <DialogDescription>
+              This will permanently delete <strong>{pendingDeleteAgent?.name ?? "this agent"}</strong>.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPendingDeleteAgent(null)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={() => void confirmDeleteAgent()}>
+              Delete agent
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }

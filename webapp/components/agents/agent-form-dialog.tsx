@@ -49,7 +49,7 @@ export function AgentFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
@@ -96,7 +96,7 @@ export function AgentFormDialog({
               required
             />
             <p className="text-xs text-muted-foreground">
-              Changing this later sends new traces to a different Braintrust project.
+              Changing this later sends new traces to a different Braintrust project. Use Agent Builder for default.
             </p>
           </div>
           <div className="grid gap-2">
@@ -156,6 +156,7 @@ export function AgentFormDialog({
             <Label htmlFor="agent-system-prompt">System prompt</Label>
             <Textarea
               id="agent-system-prompt"
+              className="max-h-64 overflow-y-auto"
               value={formData.systemPrompt}
               onChange={(event) => onFormChange({ ...formData, systemPrompt: event.target.value })}
               placeholder="You are a helpful assistant..."
