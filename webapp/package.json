@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start -p 4000",
     "lint": "eslint",
-    "db:setup": "node --env-file=.env scripts/setup-turso.mjs"
+    "db:setup:local": "NODE_ENV=development node --env-file=.env scripts/setup-turso.mjs",
+    "db:setup": "node scripts/setup-turso.mjs",
+    "vercel-build": "if [ \"$VERCEL_ENV\" = \"production\" ]; then npm run db:setup; fi && next build"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.46",

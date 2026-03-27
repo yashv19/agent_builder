@@ -1,17 +1,36 @@
 import { createClient } from "@libsql/client";
 
 const url = process.env.TURSO_DB_URL?.trim();
-const authToken = process.env.TURSO_DB_TOKEN?.trim();
+
+function isLocalDbUrl(value) {
+  const normalized = value.toLowerCase();
+  return normalized.startsWith("file:") || normalized.startsWith("sqlite:");
+}
+
+const nodeEnv = process.env.NODE_ENV?.trim().toLowerCase();
+const isProd = nodeEnv === "production";
 
 if (!url) {
   throw new Error("Missing TURSO_DB_URL");
 }
 
-if (!authToken) {
-  throw new Error("Missing TURSO_DB_TOKEN");
+if (!isProd && !isLocalDbUrl(url)) {
+  throw new Error(
+    "Non-production setup expects TURSO_DB_URL to be local SQLite.",
+  );
 }
 
-const client = createClient({ url, authToken });
+const authToken = isProd
+  ? (() => {
+      const token = process.env.TURSO_DB_TOKEN?.trim();
+      if (!token) {
+        throw new Error("Missing TURSO_DB_TOKEN");
+      }
+      return token;
+    })()
+  : undefined;
+
+const client = createClient({ url, ...(authToken ? { authToken } : {}) });
 
 const statements = [
   `
@@ -45,7 +64,6 @@ for (const sql of statements) {
 
 const info = await client.execute("PRAGMA table_info(agents);");
 
-console.log("agents table is ready");
 console.table(info.rows);
 
 await client.close();

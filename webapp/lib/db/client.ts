@@ -2,20 +2,20 @@ import "server-only";
 
 import { createClient } from "@libsql/client";
 
-import { getTursoEnv } from "@/lib/db/env";
+import { getDbEnv } from "@/lib/db/env";
 
 const globalForDb = globalThis as unknown as {
-  tursoClient?: ReturnType<typeof createClient>;
+  dbClient?: ReturnType<typeof createClient>;
 };
 
 export function getDbClient() {
-  if (!globalForDb.tursoClient) {
-    const { url, authToken } = getTursoEnv();
-    globalForDb.tursoClient = createClient({
+  if (!globalForDb.dbClient) {
+    const { url, authToken } = getDbEnv();
+    globalForDb.dbClient = createClient({
       url,
-      authToken,
+      ...(authToken ? { authToken } : {}),
     });
   }
 
-  return globalForDb.tursoClient;
+  return globalForDb.dbClient;
 }
