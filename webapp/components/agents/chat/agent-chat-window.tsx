@@ -4,6 +4,8 @@ import { FormEvent, useMemo, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { ChevronRight } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 import type { Agent } from "@/components/agents/types";
 import { TOOL_EVENT_LABELS } from "@/lib/tools/tool-metadata";
@@ -39,6 +41,8 @@ type ToolEvent = {
 type DisplayPart =
   | { kind: "text"; id: string; text: string }
   | { kind: "tool"; id: string; event: ToolEvent; label: string };
+
+const MARKDOWN_REMARK_PLUGINS = [remarkGfm];
 
 function readMessageText(message: ChatMessageShape): string {
   if (typeof message.content === "string" && message.content.length > 0) {
@@ -178,15 +182,19 @@ export function AgentChatWindow({ agent }: AgentChatWindowProps) {
                 ) : (
                   message.displayParts.map((part) => {
                     if (part.kind === "text") {
+                      const bubbleClass = `rounded-md border px-3 py-2 text-sm ${
+                        message.isUser ? "bg-primary text-primary-foreground" : "bg-muted"
+                      }`;
+
                       return (
-                        <p
+                        <div
                           key={part.id}
-                          className={`whitespace-pre-wrap rounded-md border px-3 py-2 text-sm ${
-                            message.isUser ? "bg-primary text-primary-foreground" : "bg-muted"
-                          }`}
+                          className={`${bubbleClass} space-y-3 break-words [&_a]:underline [&_a]:underline-offset-2 [&_code]:rounded-sm [&_code]:bg-black/10 [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[0.85em] [&_h1]:text-lg [&_h1]:font-semibold [&_h2]:text-base [&_h2]:font-semibold [&_li]:ml-4 [&_li]:list-disc [&_ol]:space-y-1 [&_p]:leading-6 [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:bg-black/10 [&_pre]:p-2`}
                         >
-                          {part.text}
-                        </p>
+                          <ReactMarkdown remarkPlugins={MARKDOWN_REMARK_PLUGINS}>
+                            {part.text}
+                          </ReactMarkdown>
+                        </div>
                       );
                     }
 
