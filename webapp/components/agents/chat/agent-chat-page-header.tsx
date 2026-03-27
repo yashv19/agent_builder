@@ -14,30 +14,30 @@ type AgentChatPageHeaderProps = {
 
 export function AgentChatPageHeader({ agent, isAdminPanelOpen, onToggleAdminPanel }: AgentChatPageHeaderProps) {
   return (
-    <header className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3">
-      <Button
-        type="button"
-        size="icon"
-        variant="outline"
-        className="mt-0.5"
-        onClick={onToggleAdminPanel}
-        aria-label={isAdminPanelOpen ? "Collapse admin panel" : "Expand admin panel"}
-      >
-        <Sidebar />
-        <span className="sr-only">{isAdminPanelOpen ? "Collapse admin panel" : "Expand admin panel"}</span>
-      </Button>
+    <header className="space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <Button asChild variant="outline">
+          <Link href="/">
+            <ArrowLeft />
+            Back to dashboard
+          </Link>
+        </Button>
+        <Button
+          type="button"
+          size="icon"
+          variant="outline"
+          onClick={onToggleAdminPanel}
+          aria-label={isAdminPanelOpen ? "Collapse admin panel" : "Expand admin panel"}
+        >
+          <Sidebar />
+          <span className="sr-only">{isAdminPanelOpen ? "Collapse admin panel" : "Expand admin panel"}</span>
+        </Button>
+      </div>
 
       <div className="min-w-0 space-y-2">
         <h1 className="truncate text-2xl font-semibold tracking-tight">{agent.name}</h1>
         <p className="text-sm text-muted-foreground">{agent.description || "No description provided."}</p>
       </div>
-
-      <Button asChild variant="outline" className="shrink-0">
-        <Link href="/">
-          <ArrowLeft />
-          Back to dashboard
-        </Link>
-      </Button>
     </header>
   );
 }

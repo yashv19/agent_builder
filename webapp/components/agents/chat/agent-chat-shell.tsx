@@ -16,7 +16,6 @@ export function AgentChatShell({ agent }: AgentChatShellProps) {
 
   return (
     <main className="mx-auto flex h-screen w-full max-w-7xl min-h-0 gap-4 overflow-hidden p-6 md:p-10">
-      {isAdminPanelOpen ? <AgentAdminPanel agent={agent} /> : null}
       <section className="flex min-h-0 min-w-0 flex-1 flex-col gap-6 overflow-hidden">
         <AgentChatPageHeader
           agent={agent}
@@ -25,6 +24,7 @@ export function AgentChatShell({ agent }: AgentChatShellProps) {
         />
         <AgentChatWindow agent={agent} />
       </section>
+      {isAdminPanelOpen ? <AgentAdminPanel agent={agent} /> : null}
     </main>
   );
 }
